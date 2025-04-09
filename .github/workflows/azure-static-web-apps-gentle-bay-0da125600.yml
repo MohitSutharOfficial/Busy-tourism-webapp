@@ -27,7 +27,6 @@ jobs:
         id: idtoken
         with:
            script: |
-               const github = require('@actions/github');
                return await github.actions.getIDToken();
            result-encoding: string
       - name: Build And Deploy
