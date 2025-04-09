@@ -111,17 +111,17 @@ const Home = () => {
             {[
               {
                 quote: "Odyssey transformed how I plan my trips. The AI recommendations were spot on and saved me hours of research.",
-                author: "Sarah K.",
+                author: "kishan Mudaliar.",
                 title: "Adventure Traveler"
               },
               {
                 quote: "The interactive maps helped me discover hidden gems I would have never found otherwise. Absolutely worth it!",
-                author: "Michael R.",
+                author: "Deepak .",
                 title: "Business Traveler"
               },
               {
                 quote: "Premium features like the AI chatbot helped me create the perfect family vacation itinerary without any stress.",
-                author: "Emily J.",
+                author: "bejendra .",
                 title: "Family Explorer"
               }
             ].map((testimonial, index) => (

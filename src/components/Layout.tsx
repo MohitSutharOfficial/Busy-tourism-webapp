@@ -116,7 +116,7 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-muted-foreground text-sm">
-              © {new Date().getFullYear()} Odyssey. All rights reserved.
+              © {new Date().getFullYear()} Odyssey. All rights reserved. ❤️Made by Mohit 
             </p>
             <div className="flex space-x-6">
               <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
