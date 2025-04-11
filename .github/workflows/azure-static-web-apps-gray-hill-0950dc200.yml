@@ -31,7 +31,19 @@ jobs:
       - name: Build the project
         run: npm run build
       - name: Verify build output
-        run: ls -la dist # Ensure the build output directory exists and contains files
+        run: |
+          echo "Checking build output directory..."
+          ls -la dist || (echo "Build output directory 'dist' not found!" && exit 1)
+      - name: Debug environment
+        run: |
+          echo "Node.js version:"
+          node -v
+          echo "NPM version:"
+          npm -v
+          echo "Current working directory:"
+          pwd
+          echo "Directory contents:"
+          ls -la
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
