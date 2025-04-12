@@ -1,9 +1,9 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import SearchBar from "@/components/SearchBar";
 import { cn } from "@/lib/utils";
 import { ArrowRight, MapPin, MapPinned, Globe, Users } from "lucide-react";
-import { Linkedin, Twitter, Github, Instagram } from "lucide-react";
 
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -165,63 +165,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border/50 bg-background py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-muted-foreground text-sm">
-              © {new Date().getFullYear()} Odyssey. All rights reserved. ❤️Made by Mohit 
-            </p>
-            <div className="flex space-x-6 items-center">
-              <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
-                Privacy Policy
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
-                Terms of Service
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
-                Cookie Policy
-              </a>
-
-              <div className="flex space-x-4">
-                <a 
-                  href="https://www.linkedin.com/in/yourprofile" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Linkedin className="h-5 w-5" />
-                </a>
-                <a 
-                  href="https://twitter.com/yourhandle" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Twitter className="h-5 w-5" />
-                </a>
-                <a 
-                  href="https://github.com/yourusername" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Github className="h-5 w-5" />
-                </a>
-                <a 
-                  href="https://www.instagram.com/yourprofile" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Instagram className="h-5 w-5" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
     </>
   );
 };

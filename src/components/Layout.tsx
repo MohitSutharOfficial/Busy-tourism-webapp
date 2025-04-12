@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Moon, Sun, Menu, X, MapPin, Compass, Briefcase, Crown } from "lucide-react";
+import { Linkedin, Twitter, Github, Instagram } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { cn } from "@/lib/utils";
 
@@ -118,16 +119,53 @@ const Layout = ({ children }: LayoutProps) => {
             <p className="text-muted-foreground text-sm">
               © {new Date().getFullYear()} Odyssey. All rights reserved. ❤️Made by Mohit 
             </p>
-            <div className="flex space-x-6">
-              <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
-                Privacy Policy
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
-                Terms of Service
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
-                Cookie Policy
-              </a>
+            <div className="flex flex-wrap space-x-6 items-center gap-2">
+              <div className="flex space-x-6">
+                <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
+                  Privacy Policy
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
+                  Terms of Service
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-foreground text-sm">
+                  Cookie Policy
+                </a>
+              </div>
+              
+              <div className="flex space-x-4">
+                <a 
+                  href="https://www.linkedin.com/in/yourprofile" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Linkedin className="h-5 w-5" />
+                </a>
+                <a 
+                  href="https://twitter.com/yourhandle" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Twitter className="h-5 w-5" />
+                </a>
+                <a 
+                  href="https://github.com/yourusername" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Github className="h-5 w-5" />
+                </a>
+                <a 
+                  href="https://www.instagram.com/yourprofile" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Instagram className="h-5 w-5" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
