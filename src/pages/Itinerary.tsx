@@ -15,9 +15,18 @@ const Itinerary = () => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [isLocationEnabled, setIsLocationEnabled] = useState<boolean | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Set component as mounted
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
   
   // Get user's location when component mounts
   useEffect(() => {
+    if (!isMounted) return;
+    
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser");
       setIsLocationEnabled(false);
@@ -25,38 +34,76 @@ const Itinerary = () => {
     }
     
     // First try to get a single position to check permissions
-    navigator.geolocation.getCurrentPosition(
-      () => {
-        setIsLocationEnabled(true);
-        
-        // Now set up the continuous watch
-        const watchId = navigator.geolocation.watchPosition(
-          (position) => {
-            setUserLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            });
-          },
-          (error) => {
-            console.error("Error getting location:", error);
-            handleLocationError(error);
-          },
-          { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
-        );
-        
-        return () => {
-          navigator.geolocation.clearWatch(watchId);
-        };
-      },
-      (error) => {
-        console.error("Error checking location permission:", error);
-        handleLocationError(error);
-        setIsLocationEnabled(false);
-      }
-    );
-  }, []);
+    const permissionCheck = navigator.permissions && 
+                           navigator.permissions.query({name: 'geolocation'})
+                          .then(permission => {
+                            if (permission.state === 'granted' || permission.state === 'prompt') {
+                              initializeGeolocation();
+                            } else {
+                              setIsLocationEnabled(false);
+                              toast.error("Location access is required for navigation features");
+                            }
+                          })
+                          .catch(error => {
+                            console.error("Permission check error:", error);
+                            // Fall back to direct geolocation request
+                            initializeGeolocation();
+                          });
+    
+    if (!permissionCheck) {
+      // If permissions API is not supported, try direct geolocation
+      initializeGeolocation();
+    }
+    
+    function initializeGeolocation() {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (!isMounted) return;
+          
+          setIsLocationEnabled(true);
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          
+          // Now set up the continuous watch
+          const watchId = navigator.geolocation.watchPosition(
+            (position) => {
+              if (!isMounted) return;
+              
+              setUserLocation({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              });
+            },
+            (error) => {
+              console.error("Error watching location:", error);
+              handleLocationError(error);
+            },
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+          );
+          
+          return () => {
+            navigator.geolocation.clearWatch(watchId);
+          };
+        },
+        (error) => {
+          console.error("Error checking location permission:", error);
+          handleLocationError(error);
+          setIsLocationEnabled(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+    
+    return () => {
+      // Cleanup will be handled in the nested returns
+    };
+  }, [isMounted]);
   
   const handleLocationError = (error: GeolocationPositionError) => {
+    if (!isMounted) return;
+    
     switch (error.code) {
       case 1: // Permission denied
         toast.error("Please enable location access for navigation features", {
@@ -107,6 +154,8 @@ const Itinerary = () => {
         // Set up the watch position
         const watchId = navigator.geolocation.watchPosition(
           (position) => {
+            if (!isMounted) return;
+            
             setUserLocation({
               lat: position.coords.latitude,
               lng: position.coords.longitude
@@ -120,7 +169,7 @@ const Itinerary = () => {
         );
         
         return () => {
-          navigator.geolocation.clearWatch(watchId);
+          if (watchId) navigator.geolocation.clearWatch(watchId);
         };
       },
       (error) => {
@@ -157,6 +206,12 @@ const Itinerary = () => {
     if (showConfirmClear) {
       clearItinerary();
       setShowConfirmClear(false);
+      
+      // Also reset directions if they were being displayed
+      if (showDirections) {
+        setShowDirections(false);
+        setSelectedPlaceId(null);
+      }
     } else {
       setShowConfirmClear(true);
       
@@ -168,6 +223,13 @@ const Itinerary = () => {
   };
 
   const handleNavigate = (placeId: string) => {
+    const selectedPlace = itinerary.find(place => place.id === placeId);
+    
+    if (!selectedPlace || !selectedPlace.location) {
+      toast.error("Cannot navigate - location data is missing");
+      return;
+    }
+    
     if (!userLocation) {
       if (isLocationEnabled === false) {
         toast.error("Location access is required for navigation", {
@@ -187,7 +249,7 @@ const Itinerary = () => {
     
     setSelectedPlaceId(placeId);
     setShowDirections(true);
-    toast.success("Navigation started");
+    toast.success(`Navigating to ${selectedPlace.name}`);
   };
   
   const handleCloseDirections = () => {

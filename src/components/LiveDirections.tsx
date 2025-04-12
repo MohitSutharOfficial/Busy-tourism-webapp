@@ -55,6 +55,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
   const [mapMode, setMapMode] = useState<'standard' | 'satellite'>('satellite');
   const [locationUpdateCount, setLocationUpdateCount] = useState(0);
   const [mapLoading, setMapLoading] = useState(true);
+  const initializationAttempts = useRef(0);
   
   // Map layer URLs
   const mapLayers = {
@@ -73,9 +74,21 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
     let isMounted = true;
     setMapLoading(true);
     
-    const initializeMap = async () => {
+    // Delay initialization to ensure DOM is ready
+    const timer = setTimeout(() => {
+      initializeMap();
+    }, 300);
+    
+    function initializeMap() {
       try {
         if (!isMounted || !mapRef.current || isMapInitialized) return;
+        
+        console.log("Initializing map with refs:", {
+          mapRef: mapRef.current,
+          userLocation,
+          destination,
+          attempt: initializationAttempts.current + 1
+        });
         
         // Create custom icons
         const userIcon = L.divIcon({
@@ -105,42 +118,46 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
           iconAnchor: [16, 32]
         });
         
-        console.log("Initializing map with refs:", {
-          mapRef: mapRef.current,
-          userLocation,
-          destination
-        });
-        
-        // Initialize map - IMPORTANT: Make sure the container exists and is visible
-        const map = L.map(mapRef.current, {
-          zoomControl: false,
-          attributionControl: false // Remove attribution control for cleaner UI
-        });
-        
-        // Make sure we have a valid view before setting it
-        if (userLocation && destination) {
-          // First set view to user location to ensure map is initialized
-          map.setView([userLocation.lat, userLocation.lng], 15);
+        // Force map container to have proper dimensions before initialization
+        if (mapRef.current) {
+          mapRef.current.style.width = "100%";
+          mapRef.current.style.height = "100%";
         }
         
-        // Add satellite layer by default
+        // Initialize map with explicit dimensions
+        const map = L.map(mapRef.current, {
+          zoomControl: false,
+          attributionControl: false,
+          fadeAnimation: true,
+          zoomAnimation: true
+        });
+        
+        // Add tile layer immediately to ensure it's visible
         const tileLayer = L.tileLayer(mapLayers[mapMode], {
           attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
-          maxZoom: 19
+          maxZoom: 19,
+          className: "map-tiles"
         }).addTo(map);
-        
-        // Force the map to refresh and redraw when the container becomes visible
-        setTimeout(() => {
-          map.invalidateSize();
-        }, 300);
         
         // Store the tile layer for later reference
         map.tileLayer = tileLayer as any;
         
+        // Set initial view based on user location
+        if (userLocation) {
+          map.setView([userLocation.lat, userLocation.lng], 15);
+        } else if (destination) {
+          map.setView([destination.lat, destination.lng], 15);
+        }
+        
+        // Force the map to refresh and redraw
+        setTimeout(() => {
+          map.invalidateSize(true);
+        }, 100);
+        
         // Add zoom controls in a more accessible position
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         
-        // Add user marker with accuracy circle
+        // Add user marker with accuracy circle if user location is available
         if (userLocation) {
           userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { 
             icon: userIcon,
@@ -162,7 +179,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
           }
         }
         
-        // Add destination marker
+        // Add destination marker if destination is available
         if (destination) {
           destinationMarkerRef.current = L.marker([destination.lat, destination.lng], { 
             icon: destinationIcon 
@@ -172,7 +189,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
           destinationMarkerRef.current.bindPopup("Your destination").openPopup();
         }
         
-        // Calculate and display route
+        // Calculate and display route if both user location and destination are available
         if (userLocation && destination) {
           try {
             // Create waypoints for routing
@@ -237,17 +254,10 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
                 if (userLocation && steps.length > 0) {
                   determineCurrentStep();
                 }
-                
-                // Force redraw of the map to ensure route is visible
-                map.invalidateSize();
               }
               
-              // Fit the map to show both markers and route
-              const bounds = L.latLngBounds(waypoints);
-              map.fitBounds(bounds, { 
-                padding: [50, 50],
-                maxZoom: 15
-              });
+              // Ensure map is visible after route is calculated
+              map.invalidateSize(true);
               
               // Set map loading to false once route is found
               setMapLoading(false);
@@ -309,33 +319,45 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         
         map.addControl(new LayerControl());
         
-        // Store the map instance
+        // Store the map instance and set initialization flag
         mapInstanceRef.current = map;
         setIsMapInitialized(true);
         
-        // Force map redraw after a short delay to ensure container sizes are stable
-        setTimeout(() => {
-          if (map) {
-            console.log("Forcing map redraw");
-            map.invalidateSize();
+        // Additional map invalidation to ensure proper rendering
+        const mapValidationInterval = setInterval(() => {
+          if (map && map.invalidateSize) {
+            map.invalidateSize(true);
+          } else {
+            clearInterval(mapValidationInterval);
           }
         }, 500);
+        
+        // Clear interval after 2 seconds
+        setTimeout(() => {
+          clearInterval(mapValidationInterval);
+        }, 2000);
+        
       } catch (error) {
         console.error("Error initializing map:", error);
-        toast.error("Failed to load navigation. Please try again.");
-        setMapLoading(false);
-        onClose();
+        
+        // Attempt to retry initialization if under 3 attempts
+        initializationAttempts.current += 1;
+        if (initializationAttempts.current < 3) {
+          console.log(`Retrying map initialization (attempt ${initializationAttempts.current + 1})`);
+          setTimeout(initializeMap, 500);
+        } else {
+          toast.error("Failed to load navigation map", {
+            description: "Please try again or refresh the page"
+          });
+          setMapLoading(false);
+        }
       }
-    };
-    
-    // Short delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      initializeMap();
-    }, 300);
+    }
     
     return () => {
       clearTimeout(timer);
       isMounted = false;
+      
       // Clean up routing control if it exists
       if (routingControlRef.current && mapInstanceRef.current) {
         try {
@@ -355,7 +377,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         }
       }
     };
-  }, [destination, onClose, isMapInitialized, mapMode, userLocation]);
+  }, [destination, onClose, isMapInitialized, mapMode]);
 
   // Update user marker position and re-route when location significantly changes
   useEffect(() => {
@@ -520,14 +542,26 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
   };
   
   const recenterMap = () => {
-    if (userLocation && mapInstanceRef.current) {
+    if (!mapInstanceRef.current) return;
+    
+    if (userLocation) {
       mapInstanceRef.current.setView([userLocation.lat, userLocation.lng], 15, {
         animate: true,
         duration: 0.5
       });
       setIsNavigating(true);
       toast.success("Map recentered on your location");
+    } else if (destination) {
+      // If user location not available, center on destination
+      mapInstanceRef.current.setView([destination.lat, destination.lng], 15, {
+        animate: true,
+        duration: 0.5
+      });
+      toast.success("Map centered on destination");
     }
+    
+    // Force redraw
+    mapInstanceRef.current.invalidateSize(true);
   };
   
   const getDirectionFromBearing = (bearing: number): string => {
@@ -540,7 +574,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
   useEffect(() => {
     const handleResize = () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+        mapInstanceRef.current.invalidateSize(true);
       }
     };
     
@@ -550,7 +584,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-  
+
   return (
     <div className="flex flex-col h-[400px] md:h-[500px] lg:h-[600px] rounded-xl border border-border shadow-sm overflow-hidden">
       <div className="bg-primary text-primary-foreground p-3 flex items-center justify-between">
@@ -588,6 +622,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
       </div>
       
       <div className="relative flex-grow">
+        {/* Map loading overlay */}
         {mapLoading && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center">
             <div className="flex flex-col items-center">
@@ -597,10 +632,15 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
           </div>
         )}
         
-        <div ref={mapRef} className="absolute inset-0" />
+        {/* The map container - explicitly set dimensions */}
+        <div 
+          ref={mapRef} 
+          className="absolute inset-0 w-full h-full z-10"
+          style={{ width: "100%", height: "100%" }}
+        />
         
         {/* Navigation overlay */}
-        <div className="absolute z-10 bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm p-4 shadow-lg">
+        <div className="absolute z-30 bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm p-4 shadow-lg">
           <div className="flex justify-between items-center mb-2">
             <div>
               <p className="text-xs text-muted-foreground">TOTAL DISTANCE</p>
