@@ -54,6 +54,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
   const [bearing, setBearing] = useState(0);
   const [mapMode, setMapMode] = useState<'standard' | 'satellite'>('satellite');
   const [locationUpdateCount, setLocationUpdateCount] = useState(0);
+  const [mapLoading, setMapLoading] = useState(true);
   
   // Map layer URLs
   const mapLayers = {
@@ -70,6 +71,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
     }
     
     let isMounted = true;
+    setMapLoading(true);
     
     const initializeMap = async () => {
       try {
@@ -103,6 +105,12 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
           iconAnchor: [16, 32]
         });
         
+        console.log("Initializing map with refs:", {
+          mapRef: mapRef.current,
+          userLocation,
+          destination
+        });
+        
         // Initialize map
         const map = L.map(mapRef.current, {
           zoomControl: false
@@ -118,6 +126,11 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
           attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
           maxZoom: 19
         }).addTo(map);
+        
+        // Force the map to refresh and redraw when the container becomes visible
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 100);
         
         // Store the tile layer for later reference
         map.tileLayer = tileLayer as any;
@@ -219,6 +232,9 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
               padding: [50, 50],
               maxZoom: 15
             });
+            
+            // Set map loading to false once route is found
+            setMapLoading(false);
           });
           
           routing.on('routingerror', function(e: any) {
@@ -226,6 +242,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
             toast.error("Unable to calculate route to destination", {
               description: "Please try again or choose a different destination"
             });
+            setMapLoading(false);
           });
           
           // Store routing control for later use
@@ -236,6 +253,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         } catch (routingError) {
           console.error("Error setting up routing:", routingError);
           toast.error("Failed to set up navigation route");
+          setMapLoading(false);
         }
         
         // Add layer control button (custom)
@@ -275,16 +293,29 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         // Store the map instance
         mapInstanceRef.current = map;
         setIsMapInitialized(true);
+        
+        // Force map redraw after a short delay to ensure container sizes are stable
+        setTimeout(() => {
+          if (map) {
+            console.log("Forcing map redraw");
+            map.invalidateSize();
+          }
+        }, 250);
       } catch (error) {
         console.error("Error initializing map:", error);
         toast.error("Failed to load navigation. Please try again.");
+        setMapLoading(false);
         onClose();
       }
     };
     
-    initializeMap();
+    // Short delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      initializeMap();
+    }, 100);
     
     return () => {
+      clearTimeout(timer);
       isMounted = false;
       // Clean up routing control if it exists
       if (routingControlRef.current && mapInstanceRef.current) {
@@ -486,8 +517,23 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
     return directions[index];
   };
   
+  // Force map to refresh on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+  
   return (
-    <div className="flex flex-col h-[400px] md:h-[500px] lg:h-[500px] rounded-xl border border-border shadow-sm overflow-hidden">
+    <div className="flex flex-col h-[400px] md:h-[500px] lg:h-[600px] rounded-xl border border-border shadow-sm overflow-hidden">
       <div className="bg-primary text-primary-foreground p-3 flex items-center justify-between">
         <button 
           onClick={onClose}
@@ -523,6 +569,15 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
       </div>
       
       <div className="relative flex-grow">
+        {mapLoading && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2"></div>
+              <p className="text-sm font-medium">Loading map...</p>
+            </div>
+          </div>
+        )}
+        
         <div ref={mapRef} className="absolute inset-0" />
         
         {/* Navigation overlay */}
