@@ -138,6 +138,7 @@ const Layout = ({ children }: LayoutProps) => {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="LinkedIn"
                 >
                   <Linkedin className="h-5 w-5" />
                 </a>
@@ -146,6 +147,7 @@ const Layout = ({ children }: LayoutProps) => {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Twitter"
                 >
                   <Twitter className="h-5 w-5" />
                 </a>
@@ -154,6 +156,7 @@ const Layout = ({ children }: LayoutProps) => {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="GitHub"
                 >
                   <Github className="h-5 w-5" />
                 </a>
@@ -162,6 +165,7 @@ const Layout = ({ children }: LayoutProps) => {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Instagram"
                 >
                   <Instagram className="h-5 w-5" />
                 </a>

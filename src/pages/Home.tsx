@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import SearchBar from "@/components/SearchBar";
 import { cn } from "@/lib/utils";
-import { ArrowRight, MapPin, MapPinned, Globe, Users } from "lucide-react";
+import { ArrowRight, MapPin, MapPinned, Globe } from "lucide-react";
 
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
