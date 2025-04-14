@@ -39,7 +39,7 @@ const Layout = ({ children }: LayoutProps) => {
       <header className="glass sticky top-0 z-50 border-b border-border/50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold tracking-tight">Odyssey</span>
+            <span className="text-2xl font-bold tracking-tight">Odyssey<sub>by:-Mohit</sub></span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -134,7 +134,7 @@ const Layout = ({ children }: LayoutProps) => {
               
               <div className="flex space-x-4">
                 <a 
-                  href="https://www.linkedin.com/in/yourprofile" 
+                  href="https://www.linkedin.com/in/mohit-suthar-4136a52a6/" 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -143,7 +143,7 @@ const Layout = ({ children }: LayoutProps) => {
                   <Linkedin className="h-5 w-5" />
                 </a>
                 <a 
-                  href="https://twitter.com/yourhandle" 
+                  href="https://x.com/OfficialMsuthar" 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -152,7 +152,7 @@ const Layout = ({ children }: LayoutProps) => {
                   <Twitter className="h-5 w-5" />
                 </a>
                 <a 
-                  href="https://github.com/yourusername" 
+                  href="https://github.com/MohitSutharOfficial" 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -161,7 +161,7 @@ const Layout = ({ children }: LayoutProps) => {
                   <Github className="h-5 w-5" />
                 </a>
                 <a 
-                  href="https://www.instagram.com/yourprofile" 
+                  href="https://www.instagram.com/mohitsuthar05" 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-muted-foreground hover:text-foreground transition-colors"
