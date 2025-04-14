@@ -1,6 +1,21 @@
-# Welcome to  my  college project
- with real time location direction with your palaces.
-# visit my web application 
+**Welcome to  my  college project**
+**Busy Tourism Web App**
+Busy Tourism Web App is a college project designed to provide real-time location directions to your selected destinations. It leverages modern web development technologies to deliver an efficient and user-friendly tourism experience. The application is accessible online and offers a seamless way to explore and navigate through various tourist destinations.
+
+**Features:**
+**Real-Time Location Tracking:** Navigate and get directions to your selected places effortlessly.
+
+**Modern Tech Stack:**
+**Vite:** A fast development server and build tool.
+**TypeScript:** Ensures robust and scalable code.
+**React:** Provides a dynamic and responsive user interface.
+**shadcn-ui:** For streamlined and consistent UI components.
+**Tailwind CSS:** Enables rapid and modern styling.
+**Multiple Development Options:**
+Work locally using your favorite IDE with Node.js and npm.
+Edit files directly via GitHub.
+Utilize GitHub Codespaces for an integrated development environment.
+# live demo
 Odessey:- https://gray-hill-0950dc200.6.azurestaticapps.net/
 
 ## How can I edit this code?
@@ -43,15 +58,6 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
 
 
 ## I want to use a custom domain - is that possible?
