@@ -331,11 +331,13 @@ const Itinerary = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             {showDirections && selectedPlaceId ? (
-              <LiveDirections 
-                userLocation={userLocation} 
-                destination={itinerary.find(place => place.id === selectedPlaceId)?.location}
-                onClose={handleCloseDirections}
-              />
+              <div className="h-[400px] md:h-[500px] lg:h-[600px]">
+                <LiveDirections 
+                  userLocation={userLocation} 
+                  destination={itinerary.find(place => place.id === selectedPlaceId)?.location}
+                  onClose={handleCloseDirections}
+                />
+              </div>
             ) : (
               <Map 
                 places={itinerary} 

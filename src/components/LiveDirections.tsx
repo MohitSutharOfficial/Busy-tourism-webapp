@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import L from "leaflet";
 import "leaflet-routing-machine";
+import "leaflet/dist/leaflet.css";
 
 interface LiveDirectionsProps {
   userLocation: { lat: number; lng: number } | null;
@@ -77,7 +78,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
     // Delay initialization to ensure DOM is ready
     const timer = setTimeout(() => {
       initializeMap();
-    }, 300);
+    }, 500);
     
     function initializeMap() {
       try {
@@ -122,220 +123,225 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         if (mapRef.current) {
           mapRef.current.style.width = "100%";
           mapRef.current.style.height = "100%";
+          mapRef.current.style.minHeight = "400px";
         }
         
-        // Initialize map with explicit dimensions
-        const map = L.map(mapRef.current, {
-          zoomControl: false,
-          attributionControl: false,
-          fadeAnimation: true,
-          zoomAnimation: true
-        });
-        
-        // Add tile layer immediately to ensure it's visible
-        const tileLayer = L.tileLayer(mapLayers[mapMode], {
-          attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
-          maxZoom: 19,
-          className: "map-tiles"
-        }).addTo(map);
-        
-        // Store the tile layer for later reference
-        map.tileLayer = tileLayer as any;
-        
-        // Set initial view based on user location
-        if (userLocation) {
-          map.setView([userLocation.lat, userLocation.lng], 15);
-        } else if (destination) {
-          map.setView([destination.lat, destination.lng], 15);
-        }
-        
-        // Force the map to refresh and redraw
+        // Initialize map with explicit dimensions and delay for proper DOM rendering
         setTimeout(() => {
-          map.invalidateSize(true);
-        }, 100);
-        
-        // Add zoom controls in a more accessible position
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
-        
-        // Add user marker with accuracy circle if user location is available
-        if (userLocation) {
-          userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { 
-            icon: userIcon,
-            zIndexOffset: 1000
-          }).addTo(map);
+          if (!mapRef.current || !isMounted) return;
           
-          // Add accuracy circle
-          const accuracyCircle = L.circle([userLocation.lat, userLocation.lng], {
-            radius: 30, // Assume 30m accuracy
-            weight: 1,
-            color: '#4338ca',
-            fillColor: '#4338ca',
-            fillOpacity: 0.15
-          }).addTo(map);
-          
-          // Store accuracy circle
-          if (userMarkerRef.current) {
-            (userMarkerRef.current as any).accuracyCircle = accuracyCircle;
-          }
-        }
-        
-        // Add destination marker if destination is available
-        if (destination) {
-          destinationMarkerRef.current = L.marker([destination.lat, destination.lng], { 
-            icon: destinationIcon 
-          }).addTo(map);
-          
-          // Add popup with destination info
-          destinationMarkerRef.current.bindPopup("Your destination").openPopup();
-        }
-        
-        // Calculate and display route if both user location and destination are available
-        if (userLocation && destination) {
           try {
-            // Create waypoints for routing
-            const waypoints = [
-              L.latLng(userLocation.lat, userLocation.lng),
-              L.latLng(destination.lat, destination.lng)
-            ];
-            
-            // First fit the map to show both markers
-            const bounds = L.latLngBounds(waypoints);
-            map.fitBounds(bounds, { 
-              padding: [50, 50],
-              maxZoom: 15
+            const map = L.map(mapRef.current, {
+              zoomControl: false,
+              attributionControl: true,
+              fadeAnimation: true,
+              zoomAnimation: true
             });
             
-            const routing = L.Routing.control({
-              waypoints: waypoints,
-              routeWhileDragging: false,
-              showAlternatives: false,
-              fitSelectedRoutes: true,
-              show: false, // Don't show the default UI
-              lineOptions: {
-                styles: [{ color: '#4C1D95', weight: 5, opacity: 0.8 }], // More visible route line
-                extendToWaypoints: true,
-                missingRouteTolerance: 0
-              },
-              createMarker: function() { return null; } // Don't create default markers
-            });
+            // Add tile layer immediately to ensure it's visible
+            const tileLayer = L.tileLayer(mapLayers[mapMode], {
+              attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+              maxZoom: 19,
+              className: "map-tiles"
+            }).addTo(map);
             
-            routing.addTo(map);
+            // Store the tile layer for later reference
+            map.tileLayer = tileLayer as any;
             
-            // Listen for route calculation completion
-            routing.on('routesfound', function(e: any) {
-              const routes = e.routes;
-              if (!routes || routes.length === 0) {
-                toast.error("Could not find a route to destination");
-                setMapLoading(false);
-                return;
-              }
-              
-              const route = routes[0] as ExtendedRoute; // Get the first (best) route
-              
-              // Extract and format directions
-              if (route.instructions && Array.isArray(route.instructions)) {
-                const steps = route.instructions.map((instruction: RouteInstructionWithIndex) => ({
-                  instruction: instruction.text,
-                  distance: formatDistance(instruction.distance),
-                  duration: formatTime(instruction.time),
-                  maneuver: instruction.type
-                }));
-                
-                setDirections(steps);
-                
-                if (route.summary) {
-                  setDistance(formatDistance(route.summary.totalDistance));
-                  setDuration(formatTime(route.summary.totalTime));
-                }
-                
-                routeRef.current = route;
-                
-                // Determine the current step based on closest waypoint
-                if (userLocation && steps.length > 0) {
-                  determineCurrentStep();
-                }
-              }
-              
-              // Ensure map is visible after route is calculated
+            // Set initial view based on user location and destination
+            const bounds = L.latLngBounds([
+              [userLocation.lat, userLocation.lng],
+              [destination.lat, destination.lng]
+            ]);
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            
+            // Force the map to refresh and redraw
+            setTimeout(() => {
               map.invalidateSize(true);
+            }, 100);
+            
+            // Add zoom controls in a more accessible position
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            
+            // Add user marker with accuracy circle if user location is available
+            if (userLocation) {
+              userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { 
+                icon: userIcon,
+                zIndexOffset: 1000
+              }).addTo(map);
               
-              // Set map loading to false once route is found
-              setMapLoading(false);
-            });
-            
-            routing.on('routingerror', function(e: any) {
-              console.error("Routing error:", e);
-              toast.error("Unable to calculate route to destination", {
-                description: "Please try again or choose a different destination"
-              });
-              setMapLoading(false);
-            });
-            
-            // Store routing control for later use
-            routingControlRef.current = routing;
-            
-            // Force route calculation
-            routing.route();
-          } catch (routingError) {
-            console.error("Error setting up routing:", routingError);
-            toast.error("Failed to set up navigation route");
-            setMapLoading(false);
-          }
-        } else {
-          setMapLoading(false);
-        }
-        
-        // Add layer control button (custom)
-        const LayerControl = L.Control.extend({
-          options: {
-            position: 'topright'
-          },
-          onAdd: function() {
-            const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            const button = L.DomUtil.create('a', 'bg-white p-2 flex items-center justify-center', container);
-            button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>';
-            button.href = '#';
-            button.title = 'Toggle Map Mode';
-            
-            L.DomEvent.on(button, 'click', function(e) {
-              L.DomEvent.stopPropagation(e);
-              L.DomEvent.preventDefault(e);
+              // Add accuracy circle
+              const accuracyCircle = L.circle([userLocation.lat, userLocation.lng], {
+                radius: 30, // Assume 30m accuracy
+                weight: 1,
+                color: '#4338ca',
+                fillColor: '#4338ca',
+                fillOpacity: 0.15
+              }).addTo(map);
               
-              const newMode = mapMode === 'standard' ? 'satellite' : 'standard';
-              setMapMode(newMode);
-              
-              // Update tile layer
-              if (map.tileLayer) {
-                map.tileLayer.setUrl(mapLayers[newMode]);
+              // Store accuracy circle
+              if (userMarkerRef.current) {
+                (userMarkerRef.current as any).accuracyCircle = accuracyCircle;
               }
+            }
+            
+            // Add destination marker if destination is available
+            if (destination) {
+              destinationMarkerRef.current = L.marker([destination.lat, destination.lng], { 
+                icon: destinationIcon 
+              }).addTo(map);
               
-              // Show toast notification
-              toast.success(`Switched to ${newMode} view`);
+              // Add popup with destination info
+              destinationMarkerRef.current.bindPopup("Your destination").openPopup();
+            }
+            
+            // Calculate and display route if both user location and destination are available
+            if (userLocation && destination) {
+              try {
+                // Create waypoints for routing
+                const waypoints = [
+                  L.latLng(userLocation.lat, userLocation.lng),
+                  L.latLng(destination.lat, destination.lng)
+                ];
+                
+                // Create the routing control
+                const routing = L.Routing.control({
+                  waypoints: waypoints,
+                  routeWhileDragging: false,
+                  showAlternatives: false,
+                  fitSelectedRoutes: true,
+                  show: false, // Don't show the default UI
+                  lineOptions: {
+                    styles: [{ color: '#4C1D95', weight: 5, opacity: 0.8 }], // More visible route line
+                    extendToWaypoints: true,
+                    missingRouteTolerance: 0
+                  },
+                  createMarker: function() { return null; } // Don't create default markers
+                });
+                
+                routing.addTo(map);
+                
+                // Listen for route calculation completion
+                routing.on('routesfound', function(e: any) {
+                  const routes = e.routes;
+                  if (!routes || routes.length === 0) {
+                    toast.error("Could not find a route to destination");
+                    setMapLoading(false);
+                    return;
+                  }
+                  
+                  const route = routes[0] as ExtendedRoute; // Get the first (best) route
+                  
+                  // Extract and format directions
+                  if (route.instructions && Array.isArray(route.instructions)) {
+                    const steps = route.instructions.map((instruction: RouteInstructionWithIndex) => ({
+                      instruction: instruction.text,
+                      distance: formatDistance(instruction.distance),
+                      duration: formatTime(instruction.time),
+                      maneuver: instruction.type
+                    }));
+                    
+                    setDirections(steps);
+                    
+                    if (route.summary) {
+                      setDistance(formatDistance(route.summary.totalDistance));
+                      setDuration(formatTime(route.summary.totalTime));
+                    }
+                    
+                    routeRef.current = route;
+                    
+                    // Determine the current step based on closest waypoint
+                    if (userLocation && steps.length > 0) {
+                      determineCurrentStep();
+                    }
+                  }
+                  
+                  // Ensure map is visible after route is calculated
+                  map.invalidateSize(true);
+                  
+                  // Set map loading to false once route is found
+                  setMapLoading(false);
+                });
+                
+                routing.on('routingerror', function(e: any) {
+                  console.error("Routing error:", e);
+                  toast.error("Unable to calculate route to destination", {
+                    description: "Please try again or choose a different destination"
+                  });
+                  setMapLoading(false);
+                });
+                
+                // Store routing control for later use
+                routingControlRef.current = routing;
+                
+                // Force route calculation
+                routing.route();
+              } catch (routingError) {
+                console.error("Error setting up routing:", routingError);
+                toast.error("Failed to set up navigation route");
+                setMapLoading(false);
+              }
+            } else {
+              setMapLoading(false);
+            }
+            
+            // Add layer control button (custom)
+            const LayerControl = L.Control.extend({
+              options: {
+                position: 'topright'
+              },
+              onAdd: function() {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const button = L.DomUtil.create('a', 'bg-white p-2 flex items-center justify-center', container);
+                button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>';
+                button.href = '#';
+                button.title = 'Toggle Map Mode';
+                
+                L.DomEvent.on(button, 'click', function(e) {
+                  L.DomEvent.stopPropagation(e);
+                  L.DomEvent.preventDefault(e);
+                  
+                  const newMode = mapMode === 'standard' ? 'satellite' : 'standard';
+                  setMapMode(newMode);
+                  
+                  // Update tile layer
+                  if (map.tileLayer) {
+                    map.tileLayer.setUrl(mapLayers[newMode]);
+                  }
+                  
+                  // Show toast notification
+                  toast.success(`Switched to ${newMode} view`);
+                });
+                
+                return container;
+              }
             });
             
-            return container;
+            map.addControl(new LayerControl());
+            
+            // Store the map instance and set initialization flag
+            mapInstanceRef.current = map;
+            setIsMapInitialized(true);
+            
+            // Additional map invalidation to ensure proper rendering
+            const mapValidationInterval = setInterval(() => {
+              if (map && map.invalidateSize) {
+                map.invalidateSize(true);
+              } else {
+                clearInterval(mapValidationInterval);
+              }
+            }, 500);
+            
+            // Clear interval after 3 seconds
+            setTimeout(() => {
+              clearInterval(mapValidationInterval);
+            }, 3000);
+          } catch (error) {
+            console.error("Error creating map instance:", error);
+            setMapLoading(false);
+            toast.error("Failed to initialize map");
           }
-        });
-        
-        map.addControl(new LayerControl());
-        
-        // Store the map instance and set initialization flag
-        mapInstanceRef.current = map;
-        setIsMapInitialized(true);
-        
-        // Additional map invalidation to ensure proper rendering
-        const mapValidationInterval = setInterval(() => {
-          if (map && map.invalidateSize) {
-            map.invalidateSize(true);
-          } else {
-            clearInterval(mapValidationInterval);
-          }
-        }, 500);
-        
-        // Clear interval after 2 seconds
-        setTimeout(() => {
-          clearInterval(mapValidationInterval);
-        }, 2000);
+        }, 200);
         
       } catch (error) {
         console.error("Error initializing map:", error);
@@ -377,7 +383,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         }
       }
     };
-  }, [destination, onClose, isMapInitialized, mapMode]);
+  }, [destination, onClose, mapMode]);
 
   // Update user marker position and re-route when location significantly changes
   useEffect(() => {
@@ -586,7 +592,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
   }, []);
 
   return (
-    <div className="flex flex-col h-[400px] md:h-[500px] lg:h-[600px] rounded-xl border border-border shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full rounded-xl border border-border shadow-sm overflow-hidden">
       <div className="bg-primary text-primary-foreground p-3 flex items-center justify-between">
         <button 
           onClick={onClose}
@@ -621,7 +627,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         </div>
       </div>
       
-      <div className="relative flex-grow">
+      <div className="relative flex-grow" style={{ minHeight: '400px' }}>
         {/* Map loading overlay */}
         {mapLoading && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center">
@@ -636,7 +642,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         <div 
           ref={mapRef} 
           className="absolute inset-0 w-full h-full z-10"
-          style={{ width: "100%", height: "100%" }}
+          style={{ width: "100%", height: "100%", minHeight: "400px" }}
         />
         
         {/* Navigation overlay */}
