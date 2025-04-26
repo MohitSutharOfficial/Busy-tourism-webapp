@@ -39,7 +39,7 @@ const Layout = ({ children }: LayoutProps) => {
       <header className="glass sticky top-0 z-50 border-b border-border/50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold tracking-tight">Odyssey </span>
+            <span className="text-2xl font-bold tracking-tight">Odyssey </span><sub>By:-Mohit</sub>
           </Link>
 
           {/* Desktop Navigation */}
