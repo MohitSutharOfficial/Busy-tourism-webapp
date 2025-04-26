@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import PlaceDetails from "@/components/PlaceDetails";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PlaceCardProps {
   place: TouristPlace;
@@ -44,6 +45,7 @@ const PlaceCard = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   const isInUserItinerary = isInItinerary(place.id);
   
@@ -266,7 +268,7 @@ const PlaceCard = ({
           </div>
         </div>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl w-full p-0 h-[90vh] sm:h-[80vh] overflow-hidden">
+      <DialogContent className="p-0 h-[90vh] overflow-hidden">
         <DialogTitle className="sr-only">{place.name}</DialogTitle>
         <DialogDescription className="sr-only">Details about {place.name}</DialogDescription>
         <PlaceDetails place={place} onClose={() => setDialogOpen(false)} />
