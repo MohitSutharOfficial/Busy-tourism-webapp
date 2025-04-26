@@ -266,7 +266,7 @@ const PlaceCard = ({
           </div>
         </div>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl h-[80vh] p-0">
+      <DialogContent className="max-w-4xl w-full p-0 h-[90vh] sm:h-[80vh] overflow-hidden">
         <DialogTitle className="sr-only">{place.name}</DialogTitle>
         <DialogDescription className="sr-only">Details about {place.name}</DialogDescription>
         <PlaceDetails place={place} onClose={() => setDialogOpen(false)} />
