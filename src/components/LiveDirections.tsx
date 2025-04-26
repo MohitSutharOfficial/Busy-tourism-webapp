@@ -67,6 +67,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
   // Initialize map once
   useEffect(() => {
     if (!userLocation || !destination) {
+      console.error("LiveDirections missing data:", { userLocation, destination });
       toast.error("Missing location data for navigation");
       onClose();
       return;
@@ -84,15 +85,31 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
       try {
         if (!isMounted || !mapRef.current || isMapInitialized) return;
         
+        // Ensure the map container has explicit dimensions before initializing
+        if (mapRef.current) {
+          mapRef.current.style.width = "100%";
+          mapRef.current.style.minHeight = "500px"; // Increased minimum height
+          mapRef.current.style.height = "100%"; 
+        }
+        
         console.log("Initializing map with refs:", {
           mapRef: mapRef.current,
+          mapRefDimensions: mapRef.current ? { 
+            width: mapRef.current.clientWidth,
+            height: mapRef.current.clientHeight,
+            offsetWidth: mapRef.current.offsetWidth,
+            offsetHeight: mapRef.current.offsetHeight
+          } : null,
           userLocation,
           destination,
           attempt: initializationAttempts.current + 1
         });
         
+        // Import Leaflet explicitly to ensure it's loaded
+        const leaflet = L;
+        
         // Create custom icons
-        const userIcon = L.divIcon({
+        const userIcon = leaflet.divIcon({
           className: 'custom-div-icon',
           html: `
             <div class="bg-primary text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg animate-pulse">
@@ -105,7 +122,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
           iconAnchor: [16, 32]
         });
 
-        const destinationIcon = L.divIcon({
+        const destinationIcon = leaflet.divIcon({
           className: 'custom-div-icon',
           html: `
             <div class="bg-accent text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg">
@@ -119,19 +136,20 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
           iconAnchor: [16, 32]
         });
         
-        // Force map container to have proper dimensions before initialization
-        if (mapRef.current) {
-          mapRef.current.style.width = "100%";
-          mapRef.current.style.height = "100%";
-          mapRef.current.style.minHeight = "400px";
-        }
-        
         // Initialize map with explicit dimensions and delay for proper DOM rendering
         setTimeout(() => {
           if (!mapRef.current || !isMounted) return;
           
           try {
-            const map = L.map(mapRef.current, {
+            // Forcefully set explicit dimensions again right before map creation
+            if (mapRef.current) {
+              mapRef.current.style.width = "100%";
+              mapRef.current.style.height = "500px"; // Hard-coded height
+              mapRef.current.style.display = "block";
+            }
+            
+            // Create the map with explicit container and dimensions
+            const map = leaflet.map(mapRef.current, {
               zoomControl: false,
               attributionControl: true,
               fadeAnimation: true,
@@ -139,7 +157,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
             });
             
             // Add tile layer immediately to ensure it's visible
-            const tileLayer = L.tileLayer(mapLayers[mapMode], {
+            const tileLayer = leaflet.tileLayer(mapLayers[mapMode], {
               attribution: '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
               maxZoom: 19,
               className: "map-tiles"
@@ -149,7 +167,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
             map.tileLayer = tileLayer as any;
             
             // Set initial view based on user location and destination
-            const bounds = L.latLngBounds([
+            const bounds = leaflet.latLngBounds([
               [userLocation.lat, userLocation.lng],
               [destination.lat, destination.lng]
             ]);
@@ -157,21 +175,33 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
             
             // Force the map to refresh and redraw
             setTimeout(() => {
-              map.invalidateSize(true);
+              if (map && map.invalidateSize) {
+                map.invalidateSize(true);
+                console.log("Map invalidateSize called");
+              }
             }, 100);
             
+            // Add multiple invalidation calls to ensure map renders properly
+            const validateInterval = setInterval(() => {
+              if (map && map.invalidateSize) {
+                map.invalidateSize(true);
+              }
+            }, 500);
+            
+            setTimeout(() => clearInterval(validateInterval), 3000);
+            
             // Add zoom controls in a more accessible position
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            leaflet.control.zoom({ position: 'bottomright' }).addTo(map);
             
             // Add user marker with accuracy circle if user location is available
             if (userLocation) {
-              userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { 
+              userMarkerRef.current = leaflet.marker([userLocation.lat, userLocation.lng], { 
                 icon: userIcon,
                 zIndexOffset: 1000
               }).addTo(map);
               
               // Add accuracy circle
-              const accuracyCircle = L.circle([userLocation.lat, userLocation.lng], {
+              const accuracyCircle = leaflet.circle([userLocation.lat, userLocation.lng], {
                 radius: 30, // Assume 30m accuracy
                 weight: 1,
                 color: '#4338ca',
@@ -187,7 +217,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
             
             // Add destination marker if destination is available
             if (destination) {
-              destinationMarkerRef.current = L.marker([destination.lat, destination.lng], { 
+              destinationMarkerRef.current = leaflet.marker([destination.lat, destination.lng], { 
                 icon: destinationIcon 
               }).addTo(map);
               
@@ -198,14 +228,19 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
             // Calculate and display route if both user location and destination are available
             if (userLocation && destination) {
               try {
+                console.log("Setting up routing between locations:", { 
+                  from: [userLocation.lat, userLocation.lng],
+                  to: [destination.lat, destination.lng]
+                });
+                
                 // Create waypoints for routing
                 const waypoints = [
-                  L.latLng(userLocation.lat, userLocation.lng),
-                  L.latLng(destination.lat, destination.lng)
+                  leaflet.latLng(userLocation.lat, userLocation.lng),
+                  leaflet.latLng(destination.lat, destination.lng)
                 ];
                 
                 // Create the routing control
-                const routing = L.Routing.control({
+                const routing = leaflet.Routing.control({
                   waypoints: waypoints,
                   routeWhileDragging: false,
                   showAlternatives: false,
@@ -225,12 +260,14 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
                 routing.on('routesfound', function(e: any) {
                   const routes = e.routes;
                   if (!routes || routes.length === 0) {
+                    console.error("No routes found", e);
                     toast.error("Could not find a route to destination");
                     setMapLoading(false);
                     return;
                   }
                   
                   const route = routes[0] as ExtendedRoute; // Get the first (best) route
+                  console.log("Route found", route);
                   
                   // Extract and format directions
                   if (route.instructions && Array.isArray(route.instructions)) {
@@ -286,20 +323,20 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
             }
             
             // Add layer control button (custom)
-            const LayerControl = L.Control.extend({
+            const LayerControl = leaflet.Control.extend({
               options: {
                 position: 'topright'
               },
               onAdd: function() {
-                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                const button = L.DomUtil.create('a', 'bg-white p-2 flex items-center justify-center', container);
+                const container = leaflet.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const button = leaflet.DomUtil.create('a', 'bg-white p-2 flex items-center justify-center', container);
                 button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>';
                 button.href = '#';
                 button.title = 'Toggle Map Mode';
                 
-                L.DomEvent.on(button, 'click', function(e) {
-                  L.DomEvent.stopPropagation(e);
-                  L.DomEvent.preventDefault(e);
+                leaflet.DomEvent.on(button, 'click', function(e) {
+                  leaflet.DomEvent.stopPropagation(e);
+                  leaflet.DomEvent.preventDefault(e);
                   
                   const newMode = mapMode === 'standard' ? 'satellite' : 'standard';
                   setMapMode(newMode);
@@ -322,20 +359,8 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
             // Store the map instance and set initialization flag
             mapInstanceRef.current = map;
             setIsMapInitialized(true);
+            console.log("Map initialized successfully");
             
-            // Additional map invalidation to ensure proper rendering
-            const mapValidationInterval = setInterval(() => {
-              if (map && map.invalidateSize) {
-                map.invalidateSize(true);
-              } else {
-                clearInterval(mapValidationInterval);
-              }
-            }, 500);
-            
-            // Clear interval after 3 seconds
-            setTimeout(() => {
-              clearInterval(mapValidationInterval);
-            }, 3000);
           } catch (error) {
             console.error("Error creating map instance:", error);
             setMapLoading(false);
@@ -627,7 +652,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         </div>
       </div>
       
-      <div className="relative flex-grow" style={{ minHeight: '400px' }}>
+      <div className="relative flex-grow flex" style={{ minHeight: '500px', height: '500px' }}>
         {/* Map loading overlay */}
         {mapLoading && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center">
@@ -642,7 +667,7 @@ const LiveDirections = ({ userLocation, destination, onClose }: LiveDirectionsPr
         <div 
           ref={mapRef} 
           className="absolute inset-0 w-full h-full z-10"
-          style={{ width: "100%", height: "100%", minHeight: "400px" }}
+          style={{ width: "100%", height: "500px" }}
         />
         
         {/* Navigation overlay */}

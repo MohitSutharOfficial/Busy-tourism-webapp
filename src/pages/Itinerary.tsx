@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PlaceCard from "@/components/PlaceCard";
 import Map from "@/components/Map";
@@ -17,13 +16,11 @@ const Itinerary = () => {
   const [isLocationEnabled, setIsLocationEnabled] = useState<boolean | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   
-  // Set component as mounted
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
   
-  // Get user's location when component mounts
   useEffect(() => {
     if (!isMounted) return;
     
@@ -33,7 +30,6 @@ const Itinerary = () => {
       return;
     }
     
-    // First try to get a single position to check permissions
     const permissionCheck = navigator.permissions && 
                            navigator.permissions.query({name: 'geolocation'})
                           .then(permission => {
@@ -46,12 +42,10 @@ const Itinerary = () => {
                           })
                           .catch(error => {
                             console.error("Permission check error:", error);
-                            // Fall back to direct geolocation request
                             initializeGeolocation();
                           });
     
     if (!permissionCheck) {
-      // If permissions API is not supported, try direct geolocation
       initializeGeolocation();
     }
     
@@ -60,13 +54,13 @@ const Itinerary = () => {
         (position) => {
           if (!isMounted) return;
           
+          console.log("Got user location:", position.coords);
           setIsLocationEnabled(true);
           setUserLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
           
-          // Now set up the continuous watch
           const watchId = navigator.geolocation.watchPosition(
             (position) => {
               if (!isMounted) return;
@@ -112,7 +106,6 @@ const Itinerary = () => {
           action: {
             label: "How to enable",
             onClick: () => {
-              // Open a help dialog or instructions
               window.open("https://support.google.com/chrome/answer/142065", "_blank");
             }
           }
@@ -151,7 +144,6 @@ const Itinerary = () => {
         toast.dismiss();
         toast.success("Location access granted");
         
-        // Set up the watch position
         const watchId = navigator.geolocation.watchPosition(
           (position) => {
             if (!isMounted) return;
@@ -207,7 +199,6 @@ const Itinerary = () => {
       clearItinerary();
       setShowConfirmClear(false);
       
-      // Also reset directions if they were being displayed
       if (showDirections) {
         setShowDirections(false);
         setSelectedPlaceId(null);
@@ -215,7 +206,6 @@ const Itinerary = () => {
     } else {
       setShowConfirmClear(true);
       
-      // Auto-hide the confirmation after 3 seconds
       setTimeout(() => {
         setShowConfirmClear(false);
       }, 3000);
@@ -246,6 +236,12 @@ const Itinerary = () => {
       }
       return;
     }
+    
+    console.log("Starting navigation to place:", {
+      placeId,
+      place: selectedPlace,
+      userLocation
+    });
     
     setSelectedPlaceId(placeId);
     setShowDirections(true);
@@ -331,7 +327,7 @@ const Itinerary = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             {showDirections && selectedPlaceId ? (
-              <div className="h-[400px] md:h-[500px] lg:h-[600px]">
+              <div className="h-[400px] md:h-[500px] lg:h-[600px] border border-border rounded-xl overflow-hidden">
                 <LiveDirections 
                   userLocation={userLocation} 
                   destination={itinerary.find(place => place.id === selectedPlaceId)?.location}
@@ -366,6 +362,7 @@ const Itinerary = () => {
                         <button 
                           onClick={() => handleNavigate(place.id)}
                           className="absolute top-3 right-3 bg-accent text-white p-2 rounded-full shadow-md hover:bg-accent/90 transition-colors"
+                          aria-label="Navigate to this location"
                         >
                           <Navigation className="h-4 w-4" />
                         </button>
